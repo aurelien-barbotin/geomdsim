@@ -72,7 +72,7 @@ class Trajectory(object):
         ax.set_zlabel('z')
         if ncoords is None:
             ncoords = self.out_coords.shape[1]
-        for j in range(20):
+        for j in range(ncoords):
             ax.plot3D(self.out_coords[:,j,0],self.out_coords[:,j,1], 
                       self.out_coords[:,j,2])
         set_axes_equal(ax)

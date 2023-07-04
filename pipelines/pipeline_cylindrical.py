@@ -18,10 +18,10 @@ import time
 import matplotlib.pyplot as plt
 
 plt.close('all')
-dt = 10**-3 # s
+dt = 1*10**-3 # s
 D = 1 # um2/s
 nsteps = 1000
-nparts = 20
+nparts = 10
 # R = 10 # um
 
 npix_x = 150
@@ -57,6 +57,9 @@ for j in range(nsteps):
         print("Processing frame {}".format(j))
 
 trajectory.plot_trajectories()
+
+from scipy.linalg import norm
+norm(trajectory.get_normal(),axis=1)
 1/0
 process=True
 if process:
