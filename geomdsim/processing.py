@@ -14,18 +14,21 @@ def process_stack(savepath,tirf_simulator=None, nsums=[2,3],
                            trajectory=None,
                            fitter = None, 
                            chi_threshold = 0.03, ith=0.8,initial_guess_D=1, 
-                           delete_tif = False, shifts = None):
+                           delete_tif = False, shifts = None, save_ram=True):
     """Path is where to create the stack"""
     raw_stack = tirf_simulator.get_stack()
     if shifts is not None:
         sx,sy=shifts
         raw_stack = raw_stack[:,sx:,sy:]
     path=savepath+"stack.tif"
-    
     imsave(path, raw_stack)
+    if save_ram:
+        del raw_stack
+        del tirf_simulator.frames_list
     
     stack = StackFCS(path, background_correction = True,           
                          clipval = 0)
+
     default_dt = trajectory.dt
     stack.dt = default_dt
     stack.xscale = tirf_simulator.psize
@@ -43,7 +46,7 @@ def process_stack(savepath,tirf_simulator=None, nsums=[2,3],
     
     stack.fit_curves(ft,xmax=None)
     
-    stack.save(exclude_list=['intensity_traces'])
+    stack.save(exclude_list=['traces_dict'])
     if delete_tif:
         os.remove(path)
     pars = trajectory.parameters_dict()

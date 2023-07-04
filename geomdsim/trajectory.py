@@ -21,7 +21,7 @@ from geomdsim.methods import spherical2cart, set_axes_equal, cylindrical2cart
 # 2/ process the resulting stack, generate folder etc
 
 class Trajectory(object):
-    def __init__(self, dt,D,nsteps,nparts,*args, save_coordinates=False, **kwargs):
+    def __init__(self, dt,D,nsteps,nparts,*args, nr_save_coordinates=0, **kwargs):
         """Sets up the trajectories, in physical units. Units used: seconds, 
         micrometers."""
         super().__init__() # is this even useful?
@@ -31,18 +31,18 @@ class Trajectory(object):
         self.D = D
         self.nsteps = nsteps
         self.nparts = nparts
-        self.save_coordinates = save_coordinates
+        self.nr_save_coordinates = nr_save_coordinates
         # insert code here for initial conditions
         self.xyz = (0,0,0)
         self.current_frame = 0
         
-        if self.save_coordinates:
-            self.out_coords = np.zeros((nsteps,nparts,3))
+        if self.nr_save_coordinates>0:
+            self.out_coords = np.zeros((nsteps,self.nr_save_coordinates,3))
             
     def next_step(self):
         """Makes one step: updates values of all coordinates accordingly"""
-        if self.save_coordinates:
-            self.out_coords[self.current_frame]=self.xyz
+        if self.nr_save_coordinates>0:
+            self.out_coords[self.current_frame]=self.xyz[:self.nr_save_coordinates]
         self.current_frame+=1
     def get_positions(self):
         """Method to get the positions recentered for imaging. Recentring depends
@@ -62,7 +62,7 @@ class Trajectory(object):
         set_axes_equal(ax)
         
     def plot_trajectories(self, ncoords=None):
-        if not self.save_coordinates:
+        if self.nr_save_coordinates==0:
             return
         plt.figure()
         ax = plt.axes(projection='3d')
@@ -150,9 +150,6 @@ class BacillusTrajectory(Trajectory):
         self.xyz = np.concatenate((np.concatenate((x0,x1)).reshape(-1,1),
                               np.concatenate((y0,y1)).reshape(-1,1),
                               np.concatenate((z0,z1)).reshape(-1,1) ),axis=1)
-        if self.save_coordinates:
-            self.out_coords = np.zeros((nsteps,nparts,3))
-            self.out_coords[0] = self.xyz
     
     def next_step(self):
         super().next_step()
@@ -200,4 +197,4 @@ class BacillusTrajectory(Trajectory):
     
     def get_positions(self):
         x,y,z=self.xyz[:,0], self.xyz[:,1], self.xyz[:,2]
-        return x,y,z+self.R
+        return x,y,z +self.R
