@@ -13,43 +13,60 @@ from geomdsim.methods import prepare_savefolder
 from geomdsim.processing import process_stack
 
 from pyimfcs.export import merge_fcs_results
-dt = 10**-3 # s
-D = 1 # um2/s
-nsteps = 20000
-nparts=1000
-R = 10 # um
 
-npix_img = 30
+import time
+import matplotlib.pyplot as plt
+
+plt.close('all')
+dt = 10**-3 # s
+D = 2 # um2/s
+nsteps = 50000
+nparts=500
+# R = 10 # um
+
+npix_img = 50
 psize=0.08
 sigma_psf = 0.19
 dz_tirf = 0.1
-brightness = 10**6
+brightness = 18*10**4
 z_cutoff_factor = 4
+nsums = [2,3,4]
 
-savepath="/home/aurelienb/Data/simulations/2023_07_03_refactoring/"
+t0 = time.time()
 
-trajectory = SphericalTrajectory(dt,D,nsteps,nparts,R)
+savepath="/home/aurelienb/Data/simulations/2023_07_04_test_spherical3/"
+# nparts = max(10,int(1000*(R/10)**2)//2)
 
-imager = TIRF_Simulator(npix_img, npix_img, psize, 
-             sigma_psf, dz_tirf, brightness, dt,
-             z_cutoff_factor)
+for sx in [0,2,4]:
+    for sy in [1,3,5]:
+        for rad in [0.5,1,2,3,5,10]:
+            R = rad
+            nparts = max(10,int(1000*(R/10)**2)//2)
+            trajectory = SphericalTrajectory(dt,D,nsteps,nparts,R)
+            
+            imager = TIRF_Simulator(npix_img, npix_img, psize, 
+                         sigma_psf, dz_tirf, brightness, dt,
+                         z_cutoff_factor)
+            
+            for j in range(nsteps):
+                coords_xyz = trajectory.get_positions()
+                imager.generate_frame(coords_xyz)
+                trajectory.next_step()
+                if j%500==0:
+                    print("Processing frame {}".format(j))
+            
+            # trajectory.plot_positions()
+            savefolder = prepare_savefolder(savepath)
+            
+            process_stack(savefolder,tirf_simulator=imager, nsums=nsums,
+                                       trajectory=trajectory,
+                                       fitter = None, 
+                                       chi_threshold = 0.03, ith=0.8,initial_guess_D=1, 
+                                       delete_tif = True, shifts=(sx,sy))
+            thr = 0.03
+            intensity_threshold=0.8
+            merge_fcs_results( savefolder+"FCS_results",[savefolder+"stack"+".h5"], 
+                  ith = intensity_threshold, chi_threshold = thr)
 
-for j in range(nsteps):
-    coords_xyz = trajectory.get_positions()
-    imager.generate_frame(coords_xyz)
-    trajectory.next_step()
-    if j%500==0:
-        print("Processing frame {}".format(j))
-
-trajectory.plot_positions()
-savefolder = prepare_savefolder(savepath)
-
-process_stack(savefolder,tirf_simulator=imager, nsums=[2,3],
-                           trajectory=trajectory,
-                           fitter = None, 
-                           chi_threshold = 0.03, ith=0.8,initial_guess_D=1, 
-                           delete_tif = False)
-thr = 0.03
-intensity_threshold=0.8
-merge_fcs_results( savefolder+"FCS_results",[savefolder+"stack"+".h5"], 
-      ith = intensity_threshold, chi_threshold = thr)
+t1 = time.time()
+print("Elapsed time : {:.1f} s".format(t1-t0))

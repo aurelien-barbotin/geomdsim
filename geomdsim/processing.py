@@ -14,9 +14,12 @@ def process_stack(savepath,tirf_simulator=None, nsums=[2,3],
                            trajectory=None,
                            fitter = None, 
                            chi_threshold = 0.03, ith=0.8,initial_guess_D=1, 
-                           delete_tif = False):
+                           delete_tif = False, shifts = None):
     """Path is where to create the stack"""
     raw_stack = tirf_simulator.get_stack()
+    if shifts is not None:
+        sx,sy=shifts
+        raw_stack = raw_stack[:,sx:,sy:]
     path=savepath+"stack.tif"
     
     imsave(path, raw_stack)

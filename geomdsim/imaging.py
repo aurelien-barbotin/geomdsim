@@ -43,28 +43,30 @@ class TIRF_Simulator(object):
         
         # conversion of xy to pixel coordinates. Shape of positions_new: (nparts, 2)
         positions_new = np.array([x1,y1]).T/self.psize
-        positions_new+= (np.array([self.npix_x,self.npix_y])/2)[np.newaxis,:]
-        
+        positions_new+= self.npix_x/2
+        # (np.array([self.npix_x,self.npix_y])/2)[np.newaxis,:]
         znew = z1/self.psize #converts z to pixel coordinates
         
         # Everything is in pixel coordinates from here
         
-        """msk0 = np.logical_and(
+        msk0 = np.logical_and(
             positions_new>=0,
             positions_new<(np.array([self.npix_x,self.npix_y]))[np.newaxis,:]
-                              ).all(axis=1)"""
-        
+                              ).all(axis=1)
         # anything above this along dimension z in pixel space is discarded 
         # because too dim to matter
         z_cutoff = self.z_cutoff_factor*self.dz_tirf/self.psize 
         # msk1 = np.logical_and(msk0,znew<z_cutoff)
-        msk1 = znew<z_cutoff
-        positions_new = positions_new[msk1,:]
+
+        msk1 = np.logical_and(znew<z_cutoff,msk0)
         znew = znew[msk1]
+        frame = np.zeros(self.coords[0].shape)
+        positions_new = positions_new[msk1,:]
         for k in range(positions_new.shape[0]):
             frame = self.coord2counts(positions_new[k,0], positions_new[k,1],znew[k])
             current_frame+=frame
-        self.frames_list.append(frame)
+
+        self.frames_list.append(current_frame)
         
         return frame
     
@@ -78,7 +80,7 @@ class TIRF_Simulator(object):
         coordinate in the TIRF field"""
         # pixel coordinates
         frame = self.g2d(x,y,self.sigma_psf/self.psize)*np.exp(-z*self.psize/self.dz_tirf)
-        frame=rng.poisson(lam=frame* self.brightness*self.dt,size=frame.shape)
+        # frame=rng.poisson(lam=frame* self.brightness*self.dt,size=frame.shape)
         return frame
     
     def get_stack(self):

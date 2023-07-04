@@ -10,27 +10,18 @@ objects uused to described trajectories in different geometrical configurations
 
 import numpy as np
 import matplotlib.pyplot as plt
-
-from scipy.stats import linregress
-import datetime
-import os
 from numpy.linalg import norm
 
-from pyimfcs.class_imFCS import StackFCS
-from pyimfcs.fitting import Fitter
-from pyimfcs.export import merge_fcs_results
 
-import tifffile
-import pandas as pd
 
-from geomdsim.methods import spherical2cart, set_axes_equal
+from geomdsim.methods import spherical2cart, set_axes_equal, cylindrical2cart
 
 # 1/ trajectory simulation: 1/ generate initial conditions 2/ moves these conditions
 # 2/ from trajectory to image
 # 2/ process the resulting stack, generate folder etc
 
 class Trajectory(object):
-    def __init__(self, dt,D,nsteps,nparts, save_coordinates=False,*args, **kwargs):
+    def __init__(self, dt,D,nsteps,nparts,*args, save_coordinates=False, **kwargs):
         """Sets up the trajectories, in physical units. Units used: seconds, 
         micrometers."""
         super().__init__() # is this even useful?
@@ -50,15 +41,14 @@ class Trajectory(object):
         self.current_frame+=1
         x,y,z = self.xyz
         return x,y,z
+    
     def get_positions(self):
         """Method to get the positions recentered for imaging. Recentring depends
         on the simulaiton method, e.g in a sphere you want to add the radius to the z coordinates
         so that we simulate imaging bottom of the sphere"""
         x,y,z=self.xyz[:,0], self.xyz[:,1], self.xyz[:,2]
         return x,y,z
-    def export_params(self):
-        pass
-
+    
     def plot_positions(self):
         plt.figure()
         ax = plt.axes(projection='3d')
@@ -69,8 +59,23 @@ class Trajectory(object):
         x,y,z = self.get_positions()
         ax.scatter3D(x, y, z,color="C0")
         set_axes_equal(ax)
-    def plot_trajectories(self):
-        pass
+        
+    def plot_trajectories(self, ncoords=None):
+        if not self.save_coordinates:
+            return
+        plt.figure()
+        ax = plt.axes(projection='3d')
+        # 
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+        if ncoords is None:
+            ncoords = self.out_coords.shape[1]
+        for j in range(20):
+            ax.plot3D(self.out_coords[:,j,0],self.out_coords[:,j,1], 
+                      self.out_coords[:,j,2])
+        set_axes_equal(ax)
+        
     def parameters_dict(self):
         par_dict= {"dt":self.dt,
                    "D":self.D,
@@ -115,4 +120,68 @@ class SphericalTrajectory(Trajectory):
     def parameters_dict(self):
         par_dict = super().parameters_dict()
         par_dict['R']= self.R
+        return par_dict
+    
+class BacillusTrajectory(Trajectory):
+    
+    def __init__(self, dt,D,nsteps,nparts,R, length):
+        super().__init__(dt,D,nsteps,nparts)
+        self.R = R
+        self.length = length
+    
+        # ---------- Distributes points on the spherical part----------------
+        f1 = R/(R+2*length) # fraction on sphere
+        pos0 = np.random.uniform(size = (int(f1*nparts),2))
+        # phi
+        pos0[:,0] = pos0[:,0]*2*np.pi
+        # theta
+        pos0[:,1] = np.arccos(2*pos0[:,1]-1)
+        
+        x0, y0, z0=spherical2cart(R,pos0[:,0],pos0[:,1])
+        # cylinder is on x axis
+        x0[x0<0]-=length/2
+        x0[x0>0]+=length/2
+        
+        # ----- Distributes points on the cylindrical part -----------------
+        pos1 = np.random.uniform(size = (nparts-int(f1*nparts),2))
+        pos1[:,0] = pos1[:,0]*2*np.pi # theta
+        pos1[:,1] = pos1[:,1]*length-length/2 #x
+        x1,y1,z1 = cylindrical2cart(R, pos1[:,0], pos1[:,1])
+        
+        # merges points on the sphere (x0) with points on the cylinder (x1)
+        self.xyz = np.concatenate((np.concatenate((x0,x1)).reshape(-1,1),
+                              np.concatenate((y0,y1)).reshape(-1,1),
+                              np.concatenate((z0,z1)).reshape(-1,1) ),axis=1)
+        if self.save_coordinates:
+            self.out_coords = np.zeros((nsteps,nparts,3))
+            self.out_coords[0] = self.xyz
+            
+    def normal_to_bacillus(self,xyz):
+        """Calculates a vector normal to a point in a bacillus configuration"""
+        vec_u = xyz.copy()
+        # positive values of x
+        msk_pos = vec_u[:,0]>0
+        vec_u[msk_pos,0] = np.max(
+            np.concatenate(
+                (
+                    vec_u[msk_pos,0].reshape(-1,1)-self.length/2,
+                    np.zeros(np.count_nonzero(msk_pos)
+                          ).reshape(-1,1))
+                ,axis=1)
+            ,axis=1)
+        
+        msk_neg = vec_u[:,0]<=0
+        vec_u[msk_neg,0] = np.min(
+            np.concatenate(
+                (vec_u[msk_neg,0].reshape(-1,1)+self.length/2,
+                 np.zeros(np.count_nonzero(msk_neg)).reshape(-1,1)
+                 )
+                ,axis=1) # end concatenate
+            ,axis=1)
+        return vec_u
+    
+    def parameters_dict(self):
+        par_dict = super().parameters_dict()
+        par_dict['R']= self.R
+        par_dict['length'] = self.length
         return par_dict
