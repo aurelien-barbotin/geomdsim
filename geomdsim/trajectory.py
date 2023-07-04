@@ -36,18 +36,19 @@ class Trajectory(object):
         self.xyz = (0,0,0)
         self.current_frame = 0
         
+        if self.save_coordinates:
+            self.out_coords = np.zeros((nsteps,nparts,3))
+            
     def next_step(self):
         """Makes one step: updates values of all coordinates accordingly"""
+        if self.save_coordinates:
+            self.out_coords[self.current_frame]=self.xyz
         self.current_frame+=1
-        x,y,z = self.xyz
-        return x,y,z
-    
     def get_positions(self):
         """Method to get the positions recentered for imaging. Recentring depends
         on the simulaiton method, e.g in a sphere you want to add the radius to the z coordinates
         so that we simulate imaging bottom of the sphere"""
-        x,y,z=self.xyz[:,0], self.xyz[:,1], self.xyz[:,2]
-        return x,y,z
+        raise NotImplementedError("get_positions method not implemented for this class")
     
     def plot_positions(self):
         plt.figure()
@@ -84,8 +85,8 @@ class Trajectory(object):
         return par_dict
 
 class SphericalTrajectory(Trajectory):
-    def __init__(self, dt,D,nsteps,nparts,R):
-        super().__init__(dt,D,nsteps,nparts)
+    def __init__(self, dt,D,nsteps,nparts,R,**kwargs):
+        super().__init__(dt,D,nsteps,nparts,**kwargs)
         self.R = R
         pos0 = np.random.uniform(size = (nparts,2))
         pos0[:,0] = pos0[:,0]*2*np.pi # phi
@@ -96,12 +97,10 @@ class SphericalTrajectory(Trajectory):
         self.xyz = np.concatenate((x0.reshape(-1,1),
                                   y0.reshape(-1,1),
                                   z0.reshape(-1,1)),axis=1)
-        
-        if self.save_coordinates:
-            self.out_coords = np.zeros((nsteps,nparts,3))
-            self.out_coords[0] = self.xyz
+    
             
     def next_step(self):
+        super().next_step()
         bm = np.random.normal(scale=np.sqrt(2*self.D*self.dt)/self.R,
                               size=(self.nparts,3))
         
@@ -109,14 +108,13 @@ class SphericalTrajectory(Trajectory):
         d_xyz = np.cross(self.xyz,bm)
         self.xyz+=d_xyz
         self.xyz = self.R*self.xyz/norm(self.xyz,axis=1)[:,np.newaxis]
-        
-        if self.save_coordinates:
-            self.out_coords[self.current_frame]=self.xyz
+
         return self.xyz
     
     def get_positions(self):
         x,y,z=self.xyz[:,0], self.xyz[:,1], self.xyz[:,2]
         return x,y,z+self.R
+    
     def parameters_dict(self):
         par_dict = super().parameters_dict()
         par_dict['R']= self.R
@@ -124,8 +122,8 @@ class SphericalTrajectory(Trajectory):
     
 class BacillusTrajectory(Trajectory):
     
-    def __init__(self, dt,D,nsteps,nparts,R, length):
-        super().__init__(dt,D,nsteps,nparts)
+    def __init__(self, dt,D,nsteps,nparts,R, length,**kwargs):
+        super().__init__(dt,D,nsteps,nparts,**kwargs)
         self.R = R
         self.length = length
     
@@ -155,10 +153,22 @@ class BacillusTrajectory(Trajectory):
         if self.save_coordinates:
             self.out_coords = np.zeros((nsteps,nparts,3))
             self.out_coords[0] = self.xyz
-            
-    def normal_to_bacillus(self,xyz):
+    
+    def next_step(self):
+        super().next_step()
+        bm = np.random.normal(scale=np.sqrt(2*self.D*self.dt)/self.R,
+                              size=(self.nparts,3))
+
+        vec_u = self.get_normal() # has norm R in physical coordinates
+        
+        d_xyz = np.cross(vec_u,bm)
+        self.xyz = self.xyz+d_xyz
+        norm_u=norm(vec_u,axis=1)[:,np.newaxis]
+        self.xyz = self.xyz + (self.R-norm_u)*vec_u/norm_u
+        
+    def get_normal(self):
         """Calculates a vector normal to a point in a bacillus configuration"""
-        vec_u = xyz.copy()
+        vec_u = self.xyz.copy()
         # positive values of x
         msk_pos = vec_u[:,0]>0
         vec_u[msk_pos,0] = np.max(
@@ -185,3 +195,7 @@ class BacillusTrajectory(Trajectory):
         par_dict['R']= self.R
         par_dict['length'] = self.length
         return par_dict
+    
+    def get_positions(self):
+        x,y,z=self.xyz[:,0], self.xyz[:,1], self.xyz[:,2]
+        return x,y,z+self.R

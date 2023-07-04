@@ -31,7 +31,7 @@ class TIRF_Simulator(object):
         self.z_cutoff_factor = z_cutoff_factor
         
         # Arrays of coordinates in pixel space of 
-        self.coords = np.meshgrid(np.arange(self.npix_x),np.arange(self.npix_y))
+        self.coords = np.meshgrid(np.arange(self.npix_y),np.arange(self.npix_x))
         self.frames_list = [] # where all frames will be saved
 
     def generate_frame(self, xyz):
@@ -43,8 +43,8 @@ class TIRF_Simulator(object):
         
         # conversion of xy to pixel coordinates. Shape of positions_new: (nparts, 2)
         positions_new = np.array([x1,y1]).T/self.psize
-        positions_new+= self.npix_x/2
-        # (np.array([self.npix_x,self.npix_y])/2)[np.newaxis,:]
+        positions_new+= (np.array([self.npix_x,self.npix_y])/2)[np.newaxis,:]
+        
         znew = z1/self.psize #converts z to pixel coordinates
         
         # Everything is in pixel coordinates from here

@@ -21,7 +21,7 @@ plt.close('all')
 dt = 10**-3 # s
 D = 2 # um2/s
 nsteps = 50000
-nparts=500
+nparts = 500
 # R = 10 # um
 
 npix_img = 50

@@ -43,7 +43,7 @@ def process_stack(savepath,tirf_simulator=None, nsums=[2,3],
     
     stack.fit_curves(ft,xmax=None)
     
-    stack.save()
+    stack.save(exclude_list=['intensity_traces'])
     if delete_tif:
         os.remove(path)
     pars = trajectory.parameters_dict()
