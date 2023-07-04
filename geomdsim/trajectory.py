@@ -163,6 +163,7 @@ class BacillusTrajectory(Trajectory):
         
         d_xyz = np.cross(vec_u,bm)
         self.xyz = self.xyz+d_xyz
+        vec_u = self.get_normal() # to normalise with norm of updated vector, slightly higher than R
         norm_u=norm(vec_u,axis=1)[:,np.newaxis]
         self.xyz = self.xyz + (self.R-norm_u)*vec_u/norm_u
         
@@ -188,6 +189,7 @@ class BacillusTrajectory(Trajectory):
                  )
                 ,axis=1) # end concatenate
             ,axis=1)
+        
         return vec_u
     
     def parameters_dict(self):

@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 plt.close('all')
 dt = 1*10**-3 # s
-D = 1 # um2/s
+D = 5 # um2/s
 nsteps = 1000
 nparts = 10
 # R = 10 # um
