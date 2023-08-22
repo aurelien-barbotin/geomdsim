@@ -10,9 +10,8 @@ objects uused to described trajectories in different geometrical configurations
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 from numpy.linalg import norm
-
-
 
 from geomdsim.methods import spherical2cart, set_axes_equal, cylindrical2cart
 
@@ -38,12 +37,13 @@ class Trajectory(object):
         
         if self.nr_save_coordinates>0:
             self.out_coords = np.zeros((nsteps,self.nr_save_coordinates,3))
-            
+    
     def next_step(self):
         """Makes one step: updates values of all coordinates accordingly"""
         if self.nr_save_coordinates>0:
             self.out_coords[self.current_frame]=self.xyz[:self.nr_save_coordinates]
         self.current_frame+=1
+        
     def get_positions(self):
         """Method to get the positions recentered for imaging. Recentring depends
         on the simulaiton method, e.g in a sphere you want to add the radius to the z coordinates
@@ -61,15 +61,16 @@ class Trajectory(object):
         ax.scatter3D(x, y, z,color="C0")
         set_axes_equal(ax)
         
-    def plot_trajectories(self, ncoords=None):
+    def plot_trajectories(self, ncoords=None,ax=None):
         if self.nr_save_coordinates==0:
             return
-        plt.figure()
-        ax = plt.axes(projection='3d')
+        if ax is None:
+            plt.figure()
+            ax = plt.axes(projection='3d')
         # 
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
+        ax.set_xlabel('x [µm]')
+        ax.set_ylabel('y [µm]')
+        ax.set_zlabel('z [µm]')
         if ncoords is None:
             ncoords = self.out_coords.shape[1]
         for j in range(ncoords):

@@ -19,29 +19,28 @@ import matplotlib.pyplot as plt
 
 plt.close('all')
 dt = 10**-3 # s
-D = 2 # um2/s
+D = 1 # um2/s
 nsteps = 50000
-nparts = 500
+nparts = 20
 # R = 10 # um
 
 npix_img = 50
 psize=0.08
 sigma_psf = 0.19
 dz_tirf = 0.1
-brightness = 18*10**4
+brightness = 20*10**3
 z_cutoff_factor = 4
 nsums = [2,3,4]
-
+R = 0.5
 t0 = time.time()
 
-savepath="/home/aurelienb/Data/simulations/2023_07_04_test_spherical3/"
+savepath="/home/aurelienb/Data/simulations/2023_07_17_spherical_PSFsize/"
 # nparts = max(10,int(1000*(R/10)**2)//2)
-
+sigmas= np.linspace(0.1,0.26,9)
 for sx in [0,2,4]:
     for sy in [1,3,5]:
-        for rad in [0.5,1,2,3,5,10]:
-            R = rad
-            nparts = max(10,int(1000*(R/10)**2)//2)
+        for sig in sigmas:
+            sigma_psf = sig
             trajectory = SphericalTrajectory(dt,D,nsteps,nparts,R)
             
             imager = TIRF_Simulator(npix_img, npix_img, psize, 
