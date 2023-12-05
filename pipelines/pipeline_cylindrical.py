@@ -35,7 +35,7 @@ length = 3
 R=0.5
 t0 = time.time()
 
-savepath="/home/aurelienb/Data/simulations/2023_08_01_cylindrical/"
+savepath="/home/aurelienb/Data/simulations/2023_11_15_cylindrical/"
 # nparts = max(10,int(1000*(R/10)**2)//2)
 for sx in [1,3,5]:
     for sy in [0,2,4]:

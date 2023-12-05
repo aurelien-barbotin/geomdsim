@@ -62,6 +62,7 @@ class TIRF_Simulator(object):
         znew = znew[msk1]
         frame = np.zeros(self.coords[0].shape)
         positions_new = positions_new[msk1,:]
+        
         for k in range(positions_new.shape[0]):
             frame = self.coord2counts(positions_new[k,0], positions_new[k,1],znew[k])
             current_frame+=frame
